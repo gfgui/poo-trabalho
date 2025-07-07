@@ -1,9 +1,7 @@
 
 import controller.AlbumController;
 import controller.ReviewController;
-import model.Album;
-import model.Review;
-import model.Reviewer;
+import model.*;
 
 import java.util.*;
 
@@ -11,7 +9,7 @@ public class Main {
     private static final Scanner scanner = new Scanner(System.in);
     private static final AlbumController albumController = new AlbumController();
     private static final ReviewController reviewController = new ReviewController();
-    private static final List<Reviewer> reviewers = new ArrayList<>();
+    private static final List<IReviewer> reviewers = new ArrayList<>();
 
     public static void main(String[] args) {
         System.out.println("🎵 Bem-vindo ao Sistema de Reviews de Álbuns 🎵");
@@ -21,11 +19,14 @@ public class Main {
             System.out.println("1. Cadastrar álbum");
             System.out.println("2. Cadastrar reviewer");
             System.out.println("3. Criar review");
-            System.out.println("4. Ver nota média de reviewer");
-            System.out.println("5. Listar álbuns");
-            System.out.println("6. Listar reviewers");
-            System.out.println("7. Listar reviews");
-            System.out.println("8. Sair");
+            System.out.println("4. Ver nota média de todos os reviewers");
+            System.out.println("5. Ver nota média dos reviewers especialistas");
+            System.out.println("6. Ver nota média dos reviewers comuns");
+            System.out.println("7. Listar álbuns");
+            System.out.println("8. Listar reviewers");
+            System.out.println("9. Listar reviews");
+
+            System.out.println("10. Sair");
 
             System.out.print("Opção: ");
 
@@ -36,10 +37,12 @@ public class Main {
                 case 2 -> cadastrarReviewer();
                 case 3 -> criarReview();
                 case 4 -> verNotaMedia();
-                case 5 -> listarAlbuns();
-                case 6 -> listarReviewers();
-                case 7 -> listarReviews();
-                case 8 -> {
+                case 5 -> verNotaMediaEspecialistas();
+                case 6 -> verNotaMediaComuns();
+                case 7 -> listarAlbuns();
+                case 8 -> listarReviewers();
+                case 9 -> listarReviews();
+                case 10 -> {
                     System.out.println("Saindo... 🎧");
                     return;
                 }
@@ -50,7 +53,7 @@ public class Main {
     }
 
     private static void listarAlbuns() {
-        List<Album> albuns = albumController.findAll();
+        List<Album> albuns = albumController.getAllAlbuns();
         if (albuns.isEmpty()) {
             System.out.println("📁 Nenhum álbum cadastrado.");
         } else {
@@ -72,16 +75,29 @@ public class Main {
             System.out.println("👤 Nenhum reviewer cadastrado.");
         } else {
             System.out.println("👥 Lista de Reviewers:");
-            for (Reviewer reviewer : reviewers) {
+            for (IReviewer reviewer : reviewers) {
                 System.out.printf("- [%d] %s | Gênero favorito: %s | Reviews: %d | Nota média: %.2f%n",
                         reviewer.getId(),
                         reviewer.getNome(),
                         reviewer.getGeneroFavorito(),
                         reviewer.getNumeroDeReviews(),
                         reviewer.getNotaMedia());
+
+                if (reviewer instanceof ReviewerEspecialista especialista) {
+                    System.out.printf("  🔧 Especialista | Credibilidade: %.2f | Empresa: %s%n",
+                            especialista.getNivelDeCredibilidade(),
+                            especialista.getEmpresa());
+                } else if (reviewer instanceof ReviewerComum comum) {
+                    System.out.printf("  🎧 Comum | Plataforma favorita: %s%n",
+                            comum.getPlataformaDeStreamFavorita());
+                }
+
+                System.out.println();
             }
         }
     }
+
+
 
     private static void listarReviews() {
         List<Review> reviews = reviewController.getAllReviews();
@@ -136,9 +152,35 @@ public class Main {
         System.out.print("Gênero favorito: ");
         String genero = scanner.nextLine();
 
-        Reviewer reviewer = new Reviewer(id, nome, genero);
-        reviewers.add(reviewer);
+        System.out.println("Tipo de reviewer:");
+        System.out.println("1. Comum");
+        System.out.println("2. Especialista");
+        System.out.print("Escolha: ");
+        int tipo = Integer.parseInt(scanner.nextLine());
 
+        IReviewer reviewer;
+
+        if (tipo == 1) {
+            System.out.print("Plataforma de streaming favorita: ");
+            String plataforma = scanner.nextLine();
+
+            reviewer = new ReviewerComum(id, nome, genero, plataforma);
+
+        } else if (tipo == 2) {
+            System.out.print("Nível de credibilidade (1 a 5): ");
+            int nivel = Integer.parseInt(scanner.nextLine());
+
+            System.out.print("Empresa: ");
+            String empresa = scanner.nextLine();
+
+            reviewer = new ReviewerEspecialista(id, nome, genero, nivel, empresa);
+
+        } else {
+            System.out.println("❌ Tipo inválido.");
+            return;
+        }
+
+        reviewers.add(reviewer);
         System.out.println("✅ Reviewer cadastrado com sucesso!");
     }
 
@@ -151,7 +193,7 @@ public class Main {
         System.out.print("ID do reviewer: ");
         int reviewerId = Integer.parseInt(scanner.nextLine());
 
-        Reviewer reviewer = reviewers.stream()
+        IReviewer reviewer = reviewers.stream()
                 .filter(r -> r.getId() == reviewerId)
                 .findFirst()
                 .orElse(null);
@@ -175,26 +217,126 @@ public class Main {
         System.out.print("Comentário: ");
         String comentario = scanner.nextLine();
 
-        Review review = new Review(nota, comentario, new Date(), reviewerId, albumId);
+        Review.TipoReviewer tipo =
+                (reviewer instanceof ReviewerEspecialista)
+                        ? Review.TipoReviewer.ESPECIALISTA
+                        : Review.TipoReviewer.COMUM;
+
+        int novoId = reviewController.generateNewId();
+
+        Review review = new Review(
+                novoId,
+                nota,
+                comentario,
+                new Date(),
+                reviewerId,
+                albumId,
+                tipo
+        );
+
         reviewer.createNewReview(review);
         reviewController.createReview(review);
 
         System.out.println("✅ Review registrada com sucesso!");
     }
 
+
     private static void verNotaMedia() {
-        System.out.print("ID do reviewer: ");
-        int reviewerId = Integer.parseInt(scanner.nextLine());
+        List<Integer> albumIds = albumController.getAllAlbuns()
+                .stream()
+                .map(Album::getId)
+                .toList();
 
-        Reviewer reviewer = reviewers.stream()
-                .filter(r -> r.getId() == reviewerId)
-                .findFirst()
-                .orElse(null);
+        if (albumIds.isEmpty()) {
+            System.out.println("❗ Nenhum álbum cadastrado.");
+            return;
+        }
 
-        if (reviewer == null) {
-            System.out.println("❌ Reviewer não encontrado.");
-        } else {
-            System.out.printf("📊 Nota média de %s: %.2f%n", reviewer.getNome(), reviewer.getNotaMedia());
+        for (int albumId : albumIds) {
+            String nomeAlbum = albumController.getNomeDoAlbum(albumId); // Método que retorna o nome do álbum dado o id
+            List<Review> reviewsDoAlbum = reviewController.getAllReviews()
+                    .stream()
+                    .filter(r -> r.getAlbumId() == albumId)
+                    .toList();
+
+            if (reviewsDoAlbum.isEmpty()) {
+                System.out.printf("🎵 %s (ID: %d) - Sem reviews.\n", nomeAlbum, albumId);
+            } else {
+                double media = reviewsDoAlbum.stream()
+                        .mapToInt(Review::getNota)
+                        .average()
+                        .orElse(0.0);
+
+                System.out.printf("🎵 %s (ID: %d) - Nota média: %.2f\n", nomeAlbum, albumId, media);
+            }
         }
     }
+
+    private static void verNotaMediaEspecialistas() {
+        List<Integer> albumIds = albumController.getAllAlbuns()
+                .stream()
+                .map(Album::getId)
+                .toList();
+
+        if (albumIds.isEmpty()) {
+            System.out.println("❗ Nenhum álbum cadastrado.");
+            return;
+        }
+
+        for (int albumId : albumIds) {
+            String nomeAlbum = albumController.getNomeDoAlbum(albumId);
+
+            List<Review> reviewsEspecialistas = reviewController.getAllReviews()
+                    .stream()
+                    .filter(r -> r.getAlbumId() == albumId)
+                    .filter(r -> r.getTipo() == Review.TipoReviewer.ESPECIALISTA)
+                    .toList();
+
+            if (reviewsEspecialistas.isEmpty()) {
+                System.out.printf("🎵 %s (ID: %d) - Sem reviews de especialistas.\n", nomeAlbum, albumId);
+            } else {
+                double media = reviewsEspecialistas.stream()
+                        .mapToInt(Review::getNota)
+                        .average()
+                        .orElse(0.0);
+
+                System.out.printf("🎵 %s (ID: %d) - Nota média (especialistas): %.2f\n", nomeAlbum, albumId, media);
+            }
+        }
+    }
+
+
+    private static void verNotaMediaComuns() {
+        List<Integer> albumIds = albumController.getAllAlbuns()
+                .stream()
+                .map(Album::getId)
+                .toList();
+
+        if (albumIds.isEmpty()) {
+            System.out.println("❗ Nenhum álbum cadastrado.");
+            return;
+        }
+
+        for (int albumId : albumIds) {
+            String nomeAlbum = albumController.getNomeDoAlbum(albumId);
+
+            List<Review> reviewsComuns = reviewController.getAllReviews()
+                    .stream()
+                    .filter(r -> r.getAlbumId() == albumId)
+                    .filter(r -> r.getTipo() == Review.TipoReviewer.COMUM)
+                    .toList();
+
+            if (reviewsComuns.isEmpty()) {
+                System.out.printf("🎵 %s (ID: %d) - Sem reviews de reviewers comuns.\n", nomeAlbum, albumId);
+            } else {
+                double media = reviewsComuns.stream()
+                        .mapToInt(Review::getNota)
+                        .average()
+                        .orElse(0.0);
+
+                System.out.printf("🎵 %s (ID: %d) - Nota média (comuns): %.2f\n", nomeAlbum, albumId, media);
+            }
+        }
+    }
+
 }

@@ -10,21 +10,17 @@ public class ReviewController {
     public void createReview(Review review) {
         reviews.add(review);
     }
-
-    public void deleteReview(int albumId) {
-        reviews.removeIf(review -> review.getAlbumId() == albumId);
-    }
-
-    public void updateReview(int id, Review updatedReview) {
-        for (int i = 0; i < reviews.size(); i++) {
-            if (reviews.get(i).getAlbumId() == id) {
-                reviews.set(i, updatedReview);
-                return;
-            }
-        }
-    }
-
     public List<Review> getAllReviews() {
         return reviews;
+    }
+
+    public int generateNewId() {
+        int maxId = 0;
+        for (Review review : reviews) {
+            if (review.getId() > maxId) {
+                maxId = review.getId();
+            }
+        }
+        return maxId + 1;
     }
 }

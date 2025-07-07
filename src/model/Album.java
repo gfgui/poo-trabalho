@@ -41,5 +41,4 @@ public class Album {
         return compositores;
     }
 
-    // Getters e Setters
 }
