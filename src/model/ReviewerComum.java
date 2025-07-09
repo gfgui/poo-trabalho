@@ -10,4 +10,8 @@ public class ReviewerComum extends AbstractReviewer {
     }
 
     public String getPlataformaDeStreamFavorita() { return plataformaDeStreamFavorita; }
+    @Override
+    public String getDescricao() {
+        return super.getDescricao() + ", plataforma favorita: " + plataformaDeStreamFavorita;
+    }
 }

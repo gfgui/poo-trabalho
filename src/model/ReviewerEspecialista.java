@@ -14,4 +14,9 @@ public class ReviewerEspecialista extends AbstractReviewer {
     public int getNivelDeCredibilidade() { return nivelDeCredibilidade; }
 
     public String getEmpresa() { return empresa; }
+    @Override
+    public String getDescricao() {
+        return super.getDescricao() + ", credibilidade: " + nivelDeCredibilidade +
+                ", empresa: " + empresa;
+    }
 }

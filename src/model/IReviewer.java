@@ -8,4 +8,5 @@ public interface IReviewer {
     void createNewReview(Review review);
     double getNotaMedia();
     int getNumeroDeReviews();
+    String getDescricao();
 }

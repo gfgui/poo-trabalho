@@ -27,7 +27,7 @@ public abstract class AbstractReviewer implements IReviewer {
 
     @Override
     public double getNotaMedia() {
-        if (reviews.isEmpty()) return 0;
+        if (reviews.isEmpty()) return 0.0;
         int soma = reviews.stream().mapToInt(Review::getNota).sum();
         return (double) soma / reviews.size();
     }
@@ -40,4 +40,8 @@ public abstract class AbstractReviewer implements IReviewer {
     @Override public int getId()               { return id; }
     @Override public String getNome()          { return nome; }
     @Override public String getGeneroFavorito(){ return generoFavorito; }
+
+    @Override public String getDescricao() {
+        return "Reviewer :" + nome;
+    }
 }

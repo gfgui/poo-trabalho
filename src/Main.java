@@ -78,7 +78,7 @@ public class Main {
             for (IReviewer reviewer : reviewers) {
                 System.out.printf("- [%d] %s | Gênero favorito: %s | Reviews: %d | Nota média: %.2f%n",
                         reviewer.getId(),
-                        reviewer.getNome(),
+                        reviewer.getDescricao(),
                         reviewer.getGeneroFavorito(),
                         reviewer.getNumeroDeReviews(),
                         reviewer.getNotaMedia());
